@@ -89,6 +89,28 @@ Align ParseAlign(const std::string& s) {
   return Align::Start;
 }
 
+ToastAnchor ParseToastAnchor(const std::string& s) {
+  if (s == "bottom_start" || s == "BottomStart") {
+    return ToastAnchor::BottomStart;
+  }
+  if (s == "bottom_end" || s == "BottomEnd") {
+    return ToastAnchor::BottomEnd;
+  }
+  if (s == "top_center" || s == "TopCenter") {
+    return ToastAnchor::TopCenter;
+  }
+  if (s == "top_start" || s == "TopStart") {
+    return ToastAnchor::TopStart;
+  }
+  if (s == "top_end" || s == "TopEnd") {
+    return ToastAnchor::TopEnd;
+  }
+  if (s == "center" || s == "Center") {
+    return ToastAnchor::Center;
+  }
+  return ToastAnchor::BottomCenter;
+}
+
 void ApplyPaddingColumn(Column* col, const YAML::Node& props) {
   if (!col || !props["padding"]) {
     return;
@@ -801,6 +823,26 @@ void ViewFactory::RegisterBuiltinTypes() {
     }
     if (props["fade"]) {
       toast->fade_sec(props["fade"].as<float>());
+    }
+    if (props["dismiss_on_click"]) {
+      toast->dismiss_on_click(props["dismiss_on_click"].as<bool>());
+    }
+    if (props["anchor"]) {
+      toast->anchor(ParseToastAnchor(props["anchor"].as<std::string>()));
+    }
+    if (props["margin"]) {
+      toast->margin(props["margin"].as<float>());
+    }
+    if (props["offset_x"]) {
+      toast->offset(props["offset_x"].as<float>(), toast->offset_y());
+    }
+    if (props["offset_y"]) {
+      toast->offset(toast->offset_x(), props["offset_y"].as<float>());
+    }
+    if (props["offset"] && props["offset"].IsSequence() &&
+        props["offset"].size() >= 2) {
+      toast->offset(props["offset"][0].as<float>(),
+                    props["offset"][1].as<float>());
     }
     ApplyWidthHeight(toast.get(), props);
     ApplyWeightHVAlign(toast.get(), props);

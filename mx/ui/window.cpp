@@ -374,11 +374,17 @@ void Window::PresentNextToast() {
   auto toast = std::move(toast_queue_.front());
   toast_queue_.pop_front();
   const float dur = toast->duration_sec();
-  toast->on_dismiss([this]() {
-    if (hwnd_) {
-      PostMessageW(hwnd_, kWmDismissToast, 0, 0);
-    }
-  });
+  if (toast->dismiss_on_click()) {
+    Toast::DismissHandler prior = toast->release_on_dismiss();
+    toast->on_dismiss([this, prior = std::move(prior)]() mutable {
+      if (prior) {
+        prior();
+      }
+      if (hwnd_) {
+        PostMessageW(hwnd_, kWmDismissToast, 0, 0);
+      }
+    });
+  }
   if (!toast_overlay_) {
     toast_overlay_ = std::make_unique<ToastOverlay>();
   }
@@ -518,6 +524,12 @@ void Window::ResetCreateState() {
 bool Window::CreatePopup(HWND owner, int w, int h) {
   return CreateLayeredTool(owner, w, h,
                            WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_LAYERED);
+}
+
+bool Window::CreateLayeredOverlay(int width, int height) {
+  return CreateLayeredTool(
+      nullptr, width, height,
+      WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE);
 }
 
 void Window::SetPopupChrome(float corner_radius, float border_width) {
@@ -997,23 +1009,24 @@ void Window::Defer(std::function<void()> fn) {
 }
 
 void Window::FlushDeferred() {
-  while (!deferred_fns_.empty()) {
-    std::function<void()> fn = std::move(deferred_fns_.front());
-    deferred_fns_.erase(deferred_fns_.begin());
+  std::vector<std::function<void()>> batch;
+  batch.swap(deferred_fns_);
+  for (std::function<void()>& fn : batch) {
     if (fn) {
       fn();
     }
   }
 }
 
-Window::InputDispatchGuard::InputDispatchGuard(Window* win) : w(win) {
+Window::InputDispatchGuard::InputDispatchGuard(Window* win)
+    : w(win), alive(win ? win->alive_flag() : nullptr) {
   if (w) {
     ++w->input_dispatch_depth_;
   }
 }
 
 Window::InputDispatchGuard::~InputDispatchGuard() {
-  if (!w) {
+  if (!w || !alive || !alive->load()) {
     return;
   }
   --w->input_dispatch_depth_;
@@ -2437,7 +2450,7 @@ void Window::DispatchImeChar(WPARAM wparam) {
   Invalidate();
 }
 
-void Window::RestartTooltipTimer() {
+void Window::SyncTooltip() {
   if (hwnd_) {
     KillTimer(hwnd_, kTooltipTimerId);
   }
@@ -2446,11 +2459,31 @@ void Window::RestartTooltipTimer() {
     return;
   }
   if (ResolveTooltipText(hovered_)) {
-    HideTooltip();
-    SetTimer(hwnd_, kTooltipTimerId, kTooltipDelayMs, nullptr);
+    ShowTooltipFor(hovered_);
     return;
   }
-  DismissTooltip();
+  HideTooltip();
+}
+
+void Window::RestartTooltipTimer() {
+  if (hwnd_) {
+    KillTimer(hwnd_, kTooltipTimerId);
+  }
+  if (!hwnd_ || popup_mode_ || modal_running_ || drag_active_) {
+    HideTooltip();
+    return;
+  }
+  if (!ResolveTooltipText(hovered_)) {
+    HideTooltip();
+    return;
+  }
+  const UINT delay = ResolveTooltipShowDelayMs(this, hovered_);
+  if (delay == 0) {
+    ShowTooltipFor(hovered_);
+    return;
+  }
+  HideTooltip();
+  SetTimer(hwnd_, kTooltipTimerId, delay, nullptr);
 }
 
 void Window::HideTooltip() {
@@ -2462,14 +2495,7 @@ void Window::HideTooltip() {
   }
 }
 
-void Window::DismissTooltip() {
-  if (hwnd_) {
-    KillTimer(hwnd_, kTooltipTimerId);
-  }
-  if (tooltip_) {
-    tooltip_->Dismiss();
-  }
-}
+void Window::DismissTooltip() { HideTooltip(); }
 
 void Window::ShowTooltipFor(const Node* hit) {
   const std::wstring* text = ResolveTooltipText(hit);
@@ -2479,7 +2505,7 @@ void Window::ShowTooltipFor(const Node* hit) {
   if (!tooltip_) {
     tooltip_ = std::make_unique<TooltipOverlay>();
   }
-  tooltip_->Show(hwnd_, dpi_, *text, hit && hit->animate());
+  tooltip_->Show(hwnd_, dpi_, *text, false);
 }
 
 }  // namespace mx::ui

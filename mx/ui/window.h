@@ -90,6 +90,9 @@ class Window {
   bool Create(const wchar_t* title, int w, int h,
               const WindowOptions& opt = {});
 
+  // Full-screen layered overlay (no owner). Transparent background; topmost.
+  bool CreateLayeredOverlay(int width, int height);
+
   const WindowOptions& options() const { return options_; }
 
   int RunModal();
@@ -182,7 +185,9 @@ class Window {
   float layered_opacity() const;
 
   // Overlay a Toast Node (does not insert into the window tree). Queues if one
-  // is already visible. duration_sec()<=0 stays until click / DismissToast.
+  // is already visible. Placement is relative to this window's client area
+  // (anchor/margin/offset on Toast). Auto-hide when duration_sec()>0.
+  // dismiss_on_click(true) enables click-to-dismiss; default is display-only.
   void ShowToast(std::unique_ptr<Toast> toast);
   void ShowToast(std::unique_ptr<Node> toast);
   void DismissToast();
@@ -212,6 +217,13 @@ class Window {
   void ClearAccelerators();
   // Key path used by WndProc; tests can call with explicit modifiers.
   bool HandleKey(const KeyEvent& e);
+
+  // Tooltip defaults for this window (ms). Per-node override via Node::tooltip_show_delay_ms.
+  static constexpr UINT kDefaultTooltipShowDelayMs = 400;
+  void set_tooltip_show_delay_ms(UINT ms) { tooltip_show_delay_ms_ = ms; }
+  UINT tooltip_show_delay_ms() const { return tooltip_show_delay_ms_; }
+  // Update tooltip when text changes without hover target change (shows immediately).
+  void SyncTooltip();
 
   void Minimize();
   void ToggleMaximize();
@@ -243,7 +255,6 @@ class Window {
   static constexpr UINT_PTR kTooltipTimerId = 2;
   static constexpr UINT_PTR kToastTimerId = 3;
   static constexpr UINT kWmDismissToast = WM_APP + 54;
-  static constexpr UINT kTooltipDelayMs = 400;
 
   static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam,
                                   LPARAM lparam);
@@ -273,6 +284,7 @@ class Window {
   void FlushDeferred();
   struct InputDispatchGuard {
     Window* w = nullptr;
+    std::shared_ptr<std::atomic_bool> alive;
     explicit InputDispatchGuard(Window* win);
     ~InputDispatchGuard();
   };
@@ -371,6 +383,7 @@ class Window {
   std::shared_ptr<std::atomic_bool> alive_ =
       std::make_shared<std::atomic_bool>(true);
 
+  UINT tooltip_show_delay_ms_ = kDefaultTooltipShowDelayMs;
   std::unique_ptr<TooltipOverlay> tooltip_;
   std::unique_ptr<ToastOverlay> toast_overlay_;
   std::deque<std::unique_ptr<Toast>> toast_queue_;

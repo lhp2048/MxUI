@@ -148,6 +148,13 @@ class Node {
 
   Node& tooltip(std::wstring text);
   const std::wstring& tooltip() const { return tooltip_; }
+  // Per-control hover delay before tooltip shows. Unset → Window default.
+  // 0 = show immediately (tooltip_instant(true)).
+  Node& tooltip_show_delay_ms(UINT ms);
+  Node& tooltip_instant(bool on = true);
+  bool has_tooltip_show_delay_ms() const { return tooltip_show_delay_ms_.has_value(); }
+  UINT tooltip_show_delay_ms_value() const { return tooltip_show_delay_ms_.value_or(0); }
+  void clear_tooltip_show_delay_ms() { tooltip_show_delay_ms_.reset(); }
 
   // Decorative motion (Switch thumb, Toast fade, …). Default on. Not caret blink.
   Node& animate(bool on);
@@ -240,6 +247,7 @@ class Node {
   std::wstring drag_data_;
   DropHandler on_drop_;
   std::wstring tooltip_;
+  std::optional<UINT> tooltip_show_delay_ms_;
   std::wstring acc_name_;
   std::optional<AccRole> acc_role_override_;
   mutable int acc_id_ = 0;
@@ -272,6 +280,7 @@ class Node {
 };
 
 const std::wstring* ResolveTooltipText(const Node* hit);
+UINT ResolveTooltipShowDelayMs(const Window* w, const Node* hit);
 Node* ResolveDraggable(Node* hit);
 Node* ResolveDropTarget(Node* hit, const Node* source);
 

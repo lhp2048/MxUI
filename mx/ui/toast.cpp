@@ -42,9 +42,34 @@ Toast& Toast::font_size(float size) {
   return *this;
 }
 
+Toast& Toast::dismiss_on_click(bool on) {
+  dismiss_on_click_ = on;
+  return *this;
+}
+
+Toast& Toast::anchor(ToastAnchor a) {
+  anchor_ = a;
+  return *this;
+}
+
+Toast& Toast::margin(float dip) {
+  margin_ = std::max(0.f, dip);
+  return *this;
+}
+
+Toast& Toast::offset(float x_dip, float y_dip) {
+  offset_x_ = x_dip;
+  offset_y_ = y_dip;
+  return *this;
+}
+
 Toast& Toast::on_dismiss(DismissHandler handler) {
   on_dismiss_ = std::move(handler);
   return *this;
+}
+
+Toast::DismissHandler Toast::release_on_dismiss() {
+  return std::move(on_dismiss_);
 }
 
 SizeF Toast::Measure(float max_w, float max_h) {
@@ -91,13 +116,13 @@ void Toast::Paint(mx::Canvas& canvas) {
 }
 
 void Toast::OnMouseDown(const MouseEvent&) {
-  if (on_dismiss_) {
+  if (dismiss_on_click_ && on_dismiss_) {
     on_dismiss_();
   }
 }
 
 bool Toast::AccInvoke() {
-  if (!on_dismiss_) {
+  if (!dismiss_on_click_ || !on_dismiss_) {
     return false;
   }
   on_dismiss_();

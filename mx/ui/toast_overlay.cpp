@@ -1,6 +1,5 @@
 #include "mx/ui/toast_overlay.h"
 
-#include "mx/canvas.h"
 #include "mx/ui/toast.h"
 #include "mx/ui/window.h"
 
@@ -72,8 +71,9 @@ bool ToastOverlay::Ensure(HWND owner) {
   return true;
 }
 
-void ToastOverlay::Place(HWND owner, float owner_dpi, float dip_w,
-                         float dip_h) {
+void ToastOverlay::Place(HWND owner, float owner_dpi, ToastAnchor anchor,
+                         float margin_dip, float offset_x_dip, float offset_y_dip,
+                         float dip_w, float dip_h) {
   if (!window_ || !window_->hwnd() || !owner) {
     return;
   }
@@ -82,16 +82,55 @@ void ToastOverlay::Place(HWND owner, float owner_dpi, float dip_w,
   const int ph =
       static_cast<int>(std::ceil(mx::PxFromDip(dip_h, owner_dpi)));
   const int margin =
-      static_cast<int>(std::ceil(mx::PxFromDip(16.f, owner_dpi)));
+      static_cast<int>(std::ceil(mx::PxFromDip(std::max(0.f, margin_dip), owner_dpi)));
+  const int off_x =
+      static_cast<int>(std::round(mx::PxFromDip(offset_x_dip, owner_dpi)));
+  const int off_y =
+      static_cast<int>(std::round(mx::PxFromDip(offset_y_dip, owner_dpi)));
 
   RECT cr{};
   GetClientRect(owner, &cr);
-  POINT bl{cr.left, cr.bottom};
+  POINT tl{cr.left, cr.top};
   POINT br{cr.right, cr.bottom};
-  ClientToScreen(owner, &bl);
+  ClientToScreen(owner, &tl);
   ClientToScreen(owner, &br);
-  int x = bl.x + (br.x - bl.x - pw) / 2;
-  int y = bl.y - ph - margin;
+  const int cw = br.x - tl.x;
+  const int ch = br.y - tl.y;
+
+  int x = tl.x;
+  int y = tl.y;
+  switch (anchor) {
+    case ToastAnchor::BottomCenter:
+      x = tl.x + (cw - pw) / 2;
+      y = br.y - ph - margin;
+      break;
+    case ToastAnchor::BottomStart:
+      x = tl.x + margin;
+      y = br.y - ph - margin;
+      break;
+    case ToastAnchor::BottomEnd:
+      x = br.x - pw - margin;
+      y = br.y - ph - margin;
+      break;
+    case ToastAnchor::TopCenter:
+      x = tl.x + (cw - pw) / 2;
+      y = tl.y + margin;
+      break;
+    case ToastAnchor::TopStart:
+      x = tl.x + margin;
+      y = tl.y + margin;
+      break;
+    case ToastAnchor::TopEnd:
+      x = br.x - pw - margin;
+      y = tl.y + margin;
+      break;
+    case ToastAnchor::Center:
+      x = tl.x + (cw - pw) / 2;
+      y = tl.y + (ch - ph) / 2;
+      break;
+  }
+  x += off_x;
+  y += off_y;
 
   HMONITOR mon = MonitorFromWindow(owner, MONITOR_DEFAULTTONEAREST);
   MONITORINFO mi = {};
@@ -124,12 +163,26 @@ bool ToastOverlay::Show(HWND owner, float owner_dpi,
     return false;
   }
   CancelFade();
+  const bool click_through = !toast->dismiss_on_click();
+  const ToastAnchor anchor = toast->anchor();
+  const float margin = toast->margin();
+  const float offset_x = toast->offset_x();
+  const float offset_y = toast->offset_y();
   const SizeF sz = toast->Measure(360.f, 120.f);
   const float tw = std::max(sz.w, 80.f);
   const float th = std::max(sz.h, 32.f);
   window_->set_layered_opacity(1.f);
   window_->SetRoot(std::move(toast));
-  Place(owner, owner_dpi, tw, th);
+  if (HWND thwnd = window_->hwnd()) {
+    LONG ex = GetWindowLongW(thwnd, GWL_EXSTYLE);
+    if (click_through) {
+      ex |= WS_EX_TRANSPARENT;
+    } else {
+      ex &= ~WS_EX_TRANSPARENT;
+    }
+    SetWindowLongW(thwnd, GWL_EXSTYLE, ex);
+  }
+  Place(owner, owner_dpi, anchor, margin, offset_x, offset_y, tw, th);
   ShowWindow(window_->hwnd(), SW_SHOWNOACTIVATE);
   window_->OnPaint();
   return true;

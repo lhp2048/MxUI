@@ -33,6 +33,9 @@ void TestToastNode() {
   Expect("name from text", toast.AccName() == L"已保存");
   Expect("default info", toast.variant() == ToastVariant::Info);
   Expect("default duration", toast.duration_sec() > 0.f);
+  Expect("default no click dismiss", !toast.dismiss_on_click());
+  Expect("default anchor", toast.anchor() == ToastAnchor::BottomCenter);
+  Expect("default margin", toast.margin() == 16.f);
   Expect("default animate on", toast.animate());
   Expect("default fade", toast.fade_sec() > 0.f);
   Expect("effective fade on", toast.effective_fade_sec() > 0.f);
@@ -50,6 +53,7 @@ void TestToastNode() {
   Expect("hug taller than font", sz.h > 16.f);
 
   int dismiss = 0;
+  toast.dismiss_on_click(true);
   toast.on_dismiss([&] { ++dismiss; });
   toast.OnMouseDown(MouseEvent{});
   Expect("click dismiss", dismiss == 1);

@@ -259,6 +259,20 @@ Node& Node::tooltip(std::wstring text) {
   return *this;
 }
 
+Node& Node::tooltip_show_delay_ms(UINT ms) {
+  tooltip_show_delay_ms_ = ms;
+  return *this;
+}
+
+Node& Node::tooltip_instant(bool on) {
+  if (on) {
+    tooltip_show_delay_ms_ = 0;
+  } else {
+    tooltip_show_delay_ms_.reset();
+  }
+  return *this;
+}
+
 Node& Node::animate(bool on) {
   if (animate_ == on) {
     return *this;
@@ -444,6 +458,25 @@ const std::wstring* ResolveTooltipText(const Node* hit) {
     }
   }
   return nullptr;
+}
+
+UINT ResolveTooltipShowDelayMs(const Window* w, const Node* hit) {
+  const Node* tooltip_node = nullptr;
+  for (const Node* n = hit; n; n = n->parent()) {
+    if (!n->tooltip().empty()) {
+      tooltip_node = n;
+      break;
+    }
+  }
+  for (const Node* n = hit; n; n = n->parent()) {
+    if (n->has_tooltip_show_delay_ms()) {
+      return n->tooltip_show_delay_ms_value();
+    }
+    if (n == tooltip_node) {
+      break;
+    }
+  }
+  return w ? w->tooltip_show_delay_ms() : Window::kDefaultTooltipShowDelayMs;
 }
 
 Node* ResolveDraggable(Node* hit) {

@@ -28,6 +28,20 @@ D2D1_RECT_F ToD2D(const RectF& r) {
   return D2D1::RectF(r.x, r.y, r.x + r.w, r.y + r.h);
 }
 
+HRESULT CreateDCRenderTargetSeh(ID2D1Factory* factory,
+                                const D2D1_RENDER_TARGET_PROPERTIES& props,
+                                ID2D1DCRenderTarget** target) {
+  if (!factory || !target) {
+    return E_INVALIDARG;
+  }
+  *target = nullptr;
+  __try {
+    return factory->CreateDCRenderTarget(&props, target);
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
+    return E_FAIL;
+  }
+}
+
 }  // namespace
 
 Image::Image() = default;
@@ -350,13 +364,18 @@ bool Canvas::CreateDeviceResources() {
   // RT DPI is dpi_ (set by Window) so D2D maps DIP drawing to physical pixels.
   // DC+DIB (not HWND RT): EndDraw of an HWND RT copies the full client over
   // WS_CHILD guests and they appear to blink on every parent Invalidate.
-  const D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-      D2D1_RENDER_TARGET_TYPE_DEFAULT,
+  const D2D1_PIXEL_FORMAT pixel_format =
       D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
-                        D2D1_ALPHA_MODE_PREMULTIPLIED),
-      dpi_, dpi_);
+                        D2D1_ALPHA_MODE_PREMULTIPLIED);
+  const D2D1_RENDER_TARGET_PROPERTIES hw_props = D2D1::RenderTargetProperties(
+      D2D1_RENDER_TARGET_TYPE_DEFAULT, pixel_format, dpi_, dpi_);
   ID2D1DCRenderTarget* dc_render_target = nullptr;
-  HRESULT hr = d2d_factory_->CreateDCRenderTarget(&props, &dc_render_target);
+  HRESULT hr = CreateDCRenderTargetSeh(d2d_factory_, hw_props, &dc_render_target);
+  if (FAILED(hr)) {
+    const D2D1_RENDER_TARGET_PROPERTIES sw_props = D2D1::RenderTargetProperties(
+        D2D1_RENDER_TARGET_TYPE_SOFTWARE, pixel_format, dpi_, dpi_);
+    hr = CreateDCRenderTargetSeh(d2d_factory_, sw_props, &dc_render_target);
+  }
   if (FAILED(hr)) {
     DestroyDibSurface();
     return false;

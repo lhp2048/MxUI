@@ -7,9 +7,10 @@
 
 #include <windows.h>
 
+#include "mx/ui/toast.h"
+
 namespace mx::ui {
 
-class Toast;
 class Window;
 
 class ToastOverlay {
@@ -30,7 +31,8 @@ class ToastOverlay {
 
  private:
   bool Ensure(HWND owner);
-  void Place(HWND owner, float owner_dpi, float dip_w, float dip_h);
+  void Place(HWND owner, float owner_dpi, ToastAnchor anchor, float margin_dip,
+             float offset_x_dip, float offset_y_dip, float dip_w, float dip_h);
 
   std::unique_ptr<Window> window_;
   uint64_t fade_id_ = 0;

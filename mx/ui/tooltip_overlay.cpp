@@ -8,12 +8,31 @@
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 namespace mx::ui {
 namespace {
 
 // Longer than kUiAnimSec (0.15): opacity fades need more frames to read.
 constexpr float kTooltipFadeSec = 0.3f;
+
+std::vector<std::wstring> SplitTooltipLines(const std::wstring& text) {
+  std::vector<std::wstring> lines;
+  if (text.empty()) {
+    return lines;
+  }
+  size_t start = 0;
+  while (start <= text.size()) {
+    const size_t nl = text.find(L'\n', start);
+    if (nl == std::wstring::npos) {
+      lines.push_back(text.substr(start));
+      break;
+    }
+    lines.push_back(text.substr(start, nl - start));
+    start = nl + 1;
+  }
+  return lines;
+}
 
 
 class TooltipBubble : public Column {
@@ -165,21 +184,31 @@ void TooltipOverlay::Show(HWND owner, float owner_dpi, const std::wstring& text,
   }
 
   const ThemeTokens& t = Theme::Active();
-  auto label = std::make_unique<Label>();
-  label->text(owned)
-      .font_size(t.font_size_sm)
-      .color(t.text)
-      .align(TextAlign::Center)
-      .fill_width()
-      .fill_height();
-  const float text_w =
-      mx::MeasureUiTextWidth(owned, t.font_size_sm, t.font_ui.c_str());
-  const float pad_x = 6.f;
-  const float pad_y = 2.f;
+  const std::vector<std::wstring> lines = SplitTooltipLines(owned);
+  if (lines.empty()) {
+    return;
+  }
+
+  const float fs = t.font_size_sm;
+  const wchar_t* font = t.font_ui.c_str();
+  const float line_h = fs + 4.f;
+  float max_line_w = 0.f;
+  for (const auto& line : lines) {
+    if (line.empty()) {
+      continue;
+    }
+    max_line_w =
+        (std::max)(max_line_w, mx::MeasureUiTextWidth(line, fs, font));
+  }
+
+  const float pad_x = 8.f;
+  const float pad_y = 4.f;
   const float border = 1.f;
   const float radius = 6.f;
-  const float tw = (std::min)(text_w + pad_x * 2.f + border * 2.f, 320.f);
-  const float th = t.font_size_sm + pad_y * 2.f + border * 2.f;
+  const float inner_w = (std::min)(max_line_w + pad_x * 2.f, 320.f);
+  const float tw = inner_w + border * 2.f;
+  const float th = pad_y * 2.f + border * 2.f + line_h * static_cast<float>(lines.size());
+  const TextAlign align = lines.size() > 1 ? TextAlign::Left : TextAlign::Center;
 
   auto root = std::make_unique<TooltipBubble>(t.surface, t.border, radius);
   root->padding(pad_x + border, pad_y + border, pad_x + border, pad_y + border);
@@ -187,7 +216,16 @@ void TooltipOverlay::Show(HWND owner, float owner_dpi, const std::wstring& text,
   root->v_align(Align::Center);
   root->clip_children(false);
   root->fixed_width(tw).fixed_height(th);
-  root->AddChild(std::move(label));
+  for (const auto& line : lines) {
+    auto label = std::make_unique<Label>();
+    label->text(line)
+        .font_size(fs)
+        .color(t.text)
+        .align(align)
+        .fill_width()
+        .fixed_height(line_h);
+    root->AddChild(std::move(label));
+  }
   window_->SetRoot(std::move(root));
   Place(owner_dpi, tw, th);
   animate_ = animate;

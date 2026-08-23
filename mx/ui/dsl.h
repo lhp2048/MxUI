@@ -779,6 +779,22 @@ class ToastBuilder : public detail::BuilderBase<Toast> {
     get()->font_size(size);
     return *this;
   }
+  ToastBuilder& dismiss_on_click(bool on) {
+    get()->dismiss_on_click(on);
+    return *this;
+  }
+  ToastBuilder& anchor(ToastAnchor a) {
+    get()->anchor(a);
+    return *this;
+  }
+  ToastBuilder& margin(float dip) {
+    get()->margin(dip);
+    return *this;
+  }
+  ToastBuilder& offset(float x_dip, float y_dip) {
+    get()->offset(x_dip, y_dip);
+    return *this;
+  }
   ToastBuilder& hug_width() {
     get()->hug_width();
     return *this;
