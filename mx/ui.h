@@ -41,6 +41,7 @@
 #include "mx/ui/menu_item.h"
 #include "mx/ui/native_host.h"
 #include "mx/ui/popup_host.h"
+#include "mx/ui/notify_icon.h"
 #include "mx/ui/progress_bar.h"
 #include "mx/ui/radio.h"
 #include "mx/ui/slider.h"

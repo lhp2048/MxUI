@@ -153,6 +153,7 @@ add_library(mx_ui STATIC
   mx/ui/split_view.cpp
   mx/ui/context_menu.cpp
   mx/ui/popup_host.cpp
+  mx/ui/notify_icon.cpp
   mx/ui/submenu.cpp
   mx/ui/tooltip_overlay.cpp
   mx/ui/uia/provider.cpp
