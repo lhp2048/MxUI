@@ -1,0 +1,2 @@
+# Example override for Locale::RegisterFromFile("zh-CN", ...)
+"Combo|None": "（无选择-覆盖）"

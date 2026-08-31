@@ -1,5 +1,6 @@
 #include "mx/ui/status_bar.h"
 
+#include "mx/ui/locale.h"
 #include "mx/ui/theme.h"
 
 #include <algorithm>
@@ -39,7 +40,7 @@ AccRole StatusBar::acc_role() const {
 }
 
 std::wstring StatusBar::AccDefaultName() const {
-  return L"状态栏";
+  return Locale::Tr(L"Status bar", L"StatusBar");
 }
 
 std::wstring StatusBar::AccValue() const {

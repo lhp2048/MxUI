@@ -215,6 +215,7 @@ Window::~Window() {
     alive_->store(false);
   }
   Theme::RemoveInvalidateSink(&theme_sink_);
+  Locale::RemoveInvalidateSink(&locale_sink_);
   HideTooltip();
   tooltip_.reset();
   toast_queue_.clear();
@@ -494,6 +495,8 @@ bool Window::Create(const wchar_t* title, int w, int h, const WindowOptions& opt
 
   theme_sink_ = [this] { Invalidate(); };
   Theme::AddInvalidateSink(&theme_sink_);
+  locale_sink_ = [this] { RequestLayout(); };
+  Locale::AddInvalidateSink(&locale_sink_);
 
   layout_dirty_ = true;
   if (uses_custom_chrome()) {
@@ -627,6 +630,8 @@ bool Window::CreateLayeredTool(HWND owner, int w, int h, DWORD extra_ex) {
 
   theme_sink_ = [this] { Invalidate(); };
   Theme::AddInvalidateSink(&theme_sink_);
+  locale_sink_ = [this] { RequestLayout(); };
+  Locale::AddInvalidateSink(&locale_sink_);
 
   if (Window* owner_ui = FromHwnd(owner)) {
     theme_name_ = owner_ui->theme_name_;

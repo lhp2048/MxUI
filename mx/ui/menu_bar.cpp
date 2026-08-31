@@ -1,6 +1,7 @@
 #include "mx/ui/menu_bar.h"
 
 #include "mx/ui/column.h"
+#include "mx/ui/locale.h"
 #include "mx/ui/menu_item.h"
 #include "mx/ui/popup_host.h"
 #include "mx/ui/theme.h"
@@ -73,7 +74,7 @@ AccRole MenuBar::acc_role() const {
 }
 
 std::wstring MenuBar::AccDefaultName() const {
-  return L"菜单栏";
+  return Locale::Tr(L"Menu bar", L"MenuBar");
 }
 
 SizeF MenuBar::Measure(float max_w, float max_h) {

@@ -2,6 +2,7 @@
 
 #include "mx/ui/row.h"
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -52,6 +53,7 @@ class TitleBar : public Row {
   void BuildStandardChrome();
   void ApplyNamedSlotDefaults(Node* child);
   void SyncMaximizeGlyph();
+  void SyncLocalizedAcc();
   std::unique_ptr<Node> MakeCaptionButton(const char* slot_name,
                                           const wchar_t* text,
                                           const wchar_t* acc_name,
@@ -65,6 +67,7 @@ class TitleBar : public Row {
   bool maximize_ = true;
   bool resolved_ = false;
   bool maximize_glyph_locked_ = false;
+  uint32_t acc_gen_ = 0;
   bool caption_drag_armed_ = false;
   float caption_drag_x_ = 0.f;
   float caption_drag_y_ = 0.f;

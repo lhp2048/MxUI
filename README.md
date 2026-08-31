@@ -39,7 +39,7 @@ Windows 声明式 UI 库（MX 品牌）。定位：**轻量、现代、快捷**�
 |----|------|
 | 键鼠 Win32 桌面：窗、表单、列表/树、菜单、日期时间、Toast、嵌 HWND | 跨平台、可视化设计师、触摸手势、命令冒泡 |
 | token + 每窗主题 + 控件 `bg` / `text_color` | 样式表 / 选择器、控件级 `set_theme`、控件级 `opacity` |
-| 控件级 UIA（角色、名字、Invoke / Value / Toggle / RangeValue、Tab Selection） | 列表/树项级 pattern、高对比、RTL |
+| 控件级 UIA（角色、名字、Invoke / Value / Toggle / RangeValue、Tab Selection）；内置文案 `Locale`（`控件|英文` + 可选 `lang/*.yaml` 覆盖） | 列表/树项级 pattern、高对比、RTL；应用业务语言包 |
 | Fill / Hug / Fixed + 锚点 | 百分比尺寸、`elevation` / `z-index` |
 | 单向绑定 + 控件事件写回 | YAML 绑定表达式、自动双向、`ObservableList` diff |
 | `UserControl` / 列表 + 对话框组合复杂 UI | Accordion、富文本 |
@@ -60,7 +60,7 @@ Windows 声明式 UI 库（MX 品牌）。定位：**轻量、现代、快捷**�
 |----|--------|
 | 入口 | `mx/ui.h` |
 | 画布 | `mx/canvas.h` |
-| 宿主 | `mx/ui/application.h` · `window.h` · `theme.h` · `theme_yaml.h` · `types.h` · `acc.h` · `anim.h` · `node.h` |
+| 宿主 | `mx/ui/application.h` · `window.h` · `theme.h` · `theme_yaml.h` · `locale.h` · `types.h` · `acc.h` · `anim.h` · `node.h` |
 | 布局 | `column.h` · `row.h` · `tile.h` · `tab.h` · `absolute.h` · `split_view.h` · `scroll_view.h` |
 | 控件 | `title_bar.h` · `label.h` · `button.h` · `image_button.h` · `image_view.h` · `text_field.h` · `text_area.h` · `checkbox.h` · `radio.h` · `switch_control.h` · `progress_bar.h` · `slider.h` · `combo.h` · `spin_box.h` · `date_picker.h` · `color_picker.h` · `civil_date.h` · `menu_bar.h` · `menu_item.h` · `status_bar.h` · `list_view.h` · `item_list.h` · `virtual_list.h` · `data_grid.h` · `tree_view.h` · `list_columns.h` · `user_control.h` · `native_host.h` · `toast.h` · `submenu.h` · `popup_host.h` · `context_menu.h` · `text_layout.h` |
 | 声明 | `factory.h` · `yaml_loader.h` · `dsl.h` · `bind.h` |
@@ -216,6 +216,16 @@ TitleBar:
 - 根 YAML `theme:` 只切进程，不是窗口字段
 - 未设 `font_size` 时回落 `fonts.size`
 - Gallery：`examples/ui_gallery/themes/`；**Open Dialog** 为 `window.theme: dark`
+
+## 语言（Locale）
+
+控件**内置**文案（Combo 占位、DatePicker 星期、TitleBar Acc 等）走 `Locale`；应用业务字符串自管。
+
+- Key：`控件|英文`（如 `Combo|None`）；`Locale::Tr(L"None", L"Combo")`
+- 默认 active：`en-US`（identity）；内嵌 `zh-CN`
+- `Locale::SetActive("zh-CN")` → `generation++` → 窗口 `RequestLayout`
+- 可选覆盖：`Locale::RegisterFromDir("lang")` 或 `RegisterFromFile("zh-CN", path)`，扁平 yaml：`"Combo|None": "（未选择）"`
+- 设计：`docs/superpowers/specs/2026-08-31-mxui-locale-design.md`
 
 ## 弹出层
 

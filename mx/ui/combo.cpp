@@ -1,6 +1,7 @@
 #include "mx/ui/combo.h"
 
 #include "mx/ui/list_view.h"
+#include "mx/ui/locale.h"
 #include "mx/ui/theme.h"
 #include "mx/ui/window.h"
 
@@ -289,7 +290,7 @@ void Combo::OpenPopup() {
     }
   }
   if (list->item_count() == 0) {
-    list->AddItem(L"（无匹配）");
+    list->AddItem(Locale::Tr(L"No matches", L"Combo"));
     popup_index_map_.clear();
   }
   if (multi_) {
@@ -352,7 +353,7 @@ void Combo::OpenPopup() {
 std::wstring Combo::SummaryLabel() const {
   if (multi_) {
     if (selected_indices_.empty()) {
-      return L"（未选择）";
+      return Locale::Tr(L"None", L"Combo");
     }
     if (selected_indices_.size() == 1) {
       const int i = selected_indices_.front();
@@ -360,12 +361,13 @@ std::wstring Combo::SummaryLabel() const {
         return items_[static_cast<size_t>(i)];
       }
     }
-    return L"已选 " + std::to_wstring(selected_indices_.size()) + L" 项";
+    return Locale::Format(L"%1 selected", L"Combo",
+                          std::to_wstring(selected_indices_.size()));
   }
   if (selected_ >= 0 && selected_ < static_cast<int>(items_.size())) {
     return items_[static_cast<size_t>(selected_)];
   }
-  return L"（未选择）";
+  return Locale::Tr(L"None", L"Combo");
 }
 
 SizeF Combo::Measure(float max_w, float max_h) {
@@ -388,12 +390,14 @@ void Combo::Paint(mx::Canvas& canvas) {
     label = filter_;
   } else {
     label = SummaryLabel();
-    if (label == L"（未选择）" || label == L"输入筛选…") {
+    const std::wstring none = Locale::Tr(L"None", L"Combo");
+    const std::wstring filter_ph = Locale::Tr(L"Filter…", L"Combo");
+    if (label == none || label == filter_ph) {
       color = th.text_muted;
     }
     if (editable_ && selected_ < 0 && selected_indices_.empty() &&
         filter_.empty()) {
-      label = L"输入筛选…";
+      label = filter_ph;
       color = th.text_muted;
     }
   }

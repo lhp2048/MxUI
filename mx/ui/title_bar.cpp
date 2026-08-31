@@ -3,6 +3,7 @@
 #include "mx/ui/button.h"
 #include "mx/ui/image_view.h"
 #include "mx/ui/label.h"
+#include "mx/ui/locale.h"
 #include "mx/ui/window.h"
 
 #include <utility>
@@ -69,13 +70,35 @@ void TitleBar::OnHostWindowChanged() {
 
 SizeF TitleBar::Measure(float max_w, float max_h) {
   ResolveChrome();
+  SyncLocalizedAcc();
   return Row::Measure(max_w, max_h);
 }
 
 void TitleBar::Layout(const RectF& final_rect) {
   ResolveChrome();
   SyncMaximizeGlyph();
+  SyncLocalizedAcc();
   Row::Layout(final_rect);
+}
+
+void TitleBar::SyncLocalizedAcc() {
+  const uint32_t gen = Locale::Generation();
+  if (acc_gen_ == gen) {
+    return;
+  }
+  acc_gen_ = gen;
+  if (auto* b = dynamic_cast<Button*>(FindByName(kSlotMinimize))) {
+    b->acc_name(Locale::Tr(L"Minimize", L"TitleBar"));
+  }
+  if (auto* b = dynamic_cast<Button*>(FindByName(kSlotMaximize))) {
+    Window* w = host_window();
+    const bool maxed = w && w->is_maximized();
+    b->acc_name(maxed ? Locale::Tr(L"Restore", L"TitleBar")
+                      : Locale::Tr(L"Maximize", L"TitleBar"));
+  }
+  if (auto* b = dynamic_cast<Button*>(FindByName(kSlotClose))) {
+    b->acc_name(Locale::Tr(L"Close", L"TitleBar"));
+  }
 }
 
 std::unique_ptr<Node> TitleBar::MakeIconView() {
@@ -141,11 +164,11 @@ void TitleBar::ApplyNamedSlotDefaults(Node* child) {
     return;
   }
   const wchar_t* glyph = L"";
-  const wchar_t* acc = L"";
+  std::wstring acc;
   std::function<void()> action;
   if (slot == kSlotMinimize) {
     glyph = L"\u2013";
-    acc = L"\u6700\u5c0f\u5316";
+    acc = Locale::Tr(L"Minimize", L"TitleBar");
     action = [this] {
       if (Window* w = host_window()) {
         w->Minimize();
@@ -153,7 +176,7 @@ void TitleBar::ApplyNamedSlotDefaults(Node* child) {
     };
   } else if (slot == kSlotMaximize) {
     glyph = kGlyphMaximize;
-    acc = L"\u6700\u5927\u5316";
+    acc = Locale::Tr(L"Maximize", L"TitleBar");
     action = [this] {
       if (Window* w = host_window()) {
         w->ToggleMaximize();
@@ -164,7 +187,7 @@ void TitleBar::ApplyNamedSlotDefaults(Node* child) {
     }
   } else {
     glyph = L"\u00D7";
-    acc = L"\u5173\u95ed";
+    acc = Locale::Tr(L"Close", L"TitleBar");
     action = [this] {
       if (Window* w = host_window()) {
         w->Close();
@@ -181,7 +204,7 @@ void TitleBar::ApplyNamedSlotDefaults(Node* child) {
     btn->variant(ButtonVariant::Secondary);
   }
   if (btn->acc_name().empty()) {
-    btn->acc_name(acc);
+    btn->acc_name(std::move(acc));
   }
   // Button ctor: fill width + fixed height 40. Treat as "size not set".
   if (btn->width_policy() == SizePolicy::Fill &&
@@ -203,7 +226,8 @@ void TitleBar::SyncMaximizeGlyph() {
   Window* w = host_window();
   const bool maxed = w && w->is_maximized();
   btn->text(maxed ? kGlyphRestore : kGlyphMaximize);
-  btn->acc_name(maxed ? L"\u8fd8\u539f" : L"\u6700\u5927\u5316");
+  btn->acc_name(maxed ? Locale::Tr(L"Restore", L"TitleBar")
+                      : Locale::Tr(L"Maximize", L"TitleBar"));
 }
 
 void TitleBar::BuildStandardChrome() {
@@ -217,7 +241,8 @@ void TitleBar::BuildStandardChrome() {
   AddChild(std::move(lab));
 
   if (minimize_) {
-    AddChild(MakeCaptionButton(kSlotMinimize, L"\u2013", L"\u6700\u5c0f\u5316",
+    AddChild(MakeCaptionButton(kSlotMinimize, L"\u2013",
+                               Locale::Tr(L"Minimize", L"TitleBar").c_str(),
                                [this] {
                                  if (Window* w = host_window()) {
                                    w->Minimize();
@@ -226,18 +251,21 @@ void TitleBar::BuildStandardChrome() {
   }
   if (maximize_) {
     AddChild(MakeCaptionButton(kSlotMaximize, kGlyphMaximize,
-                               L"\u6700\u5927\u5316", [this] {
+                               Locale::Tr(L"Maximize", L"TitleBar").c_str(),
+                               [this] {
                                  if (Window* w = host_window()) {
                                    w->ToggleMaximize();
                                  }
                                }));
   }
   if (close_) {
-    AddChild(MakeCaptionButton(kSlotClose, L"\u00D7", L"\u5173\u95ed", [this] {
-      if (Window* w = host_window()) {
-        w->Close();
-      }
-    }));
+    AddChild(MakeCaptionButton(kSlotClose, L"\u00D7",
+                               Locale::Tr(L"Close", L"TitleBar").c_str(),
+                               [this] {
+                                 if (Window* w = host_window()) {
+                                   w->Close();
+                                 }
+                               }));
   }
 }
 

@@ -3,6 +3,7 @@
 #include "mx/canvas.h"
 #include "mx/ui/anim.h"
 #include "mx/ui/node.h"
+#include "mx/ui/locale.h"
 #include "mx/ui/theme.h"
 
 #include <atomic>
@@ -380,6 +381,7 @@ class Window {
   bool toast_fading_ = false;
   bool invalidate_posted_ = false;
   Theme::InvalidateSink theme_sink_;
+  LocaleInvalidateSink locale_sink_;
   std::shared_ptr<std::atomic_bool> alive_ =
       std::make_shared<std::atomic_bool>(true);
 

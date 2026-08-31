@@ -1,5 +1,6 @@
 #include "mx/ui/date_picker.h"
 
+#include "mx/ui/locale.h"
 #include "mx/ui/theme.h"
 #include "mx/ui/window.h"
 
@@ -25,7 +26,8 @@ constexpr float kPad = 8.f;
 constexpr int kYearMin = 1900;
 constexpr int kYearMax = 2100;
 
-const wchar_t* kDow[] = {L"一", L"二", L"三", L"四", L"五", L"六", L"日"};
+const wchar_t* kDowEn[] = {L"Mon", L"Tue", L"Wed", L"Thu",
+                           L"Fri", L"Sat", L"Sun"};
 
 int MondayIndex(int sunday_based) {
   return (sunday_based + 6) % 7;
@@ -261,14 +263,12 @@ class CalendarPopup : public Node {
   }
 
   std::wstring YearLabel() const {
-    wchar_t buf[16] = {};
-    swprintf_s(buf, L"%d年", view_.year);
-    return buf;
+    return Locale::Format(L"%1 Year", L"DatePicker",
+                          std::to_wstring(view_.year));
   }
   std::wstring MonthLabel() const {
-    wchar_t buf[16] = {};
-    swprintf_s(buf, L"%d月", view_.month);
-    return buf;
+    return Locale::Format(L"%1 Month", L"DatePicker",
+                          std::to_wstring(view_.month));
   }
 
   RectF PrevRect() const {
@@ -452,7 +452,8 @@ class CalendarPopup : public Node {
     for (int i = 0; i < 7; ++i) {
       const RectF cell{grid_x + cell_w * static_cast<float>(i), grid_y, cell_w,
                        kDowH};
-      canvas.DrawText(kDow[i], cell, th.text_muted, 12.f, th.font_ui.c_str(),
+      canvas.DrawText(Locale::Tr(kDowEn[i], L"DatePicker"), cell, th.text_muted,
+                      12.f, th.font_ui.c_str(),
                       mx::TextHAlign::Center);
     }
     const CivilDate today = TodayLocal();
@@ -499,14 +500,15 @@ class CalendarPopup : public Node {
       } else if (hover_ym_ == i + 1) {
         canvas.FillRoundedRect(Inset(cell, 4.f), 6.f, 6.f, th.surface_alt);
       }
-      wchar_t buf[16] = {};
+      std::wstring text;
       if (panel_ == Panel::Months) {
-        swprintf_s(buf, L"%d月", i + 1);
+        text = Locale::Format(L"%1 Month", L"DatePicker",
+                              std::to_wstring(i + 1));
       } else {
-        swprintf_s(buf, L"%d", year_page_ + i);
+        text = std::to_wstring(year_page_ + i);
       }
       const ColorF color = sel ? th.text_on_accent : th.text;
-      canvas.DrawText(buf, cell, color, 13.f, th.font_ui.c_str(),
+      canvas.DrawText(text, cell, color, 13.f, th.font_ui.c_str(),
                       mx::TextHAlign::Center);
     }
   }
