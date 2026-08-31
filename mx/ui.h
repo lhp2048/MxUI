@@ -12,6 +12,7 @@
 #include "mx/ui/node.h"
 #include "mx/ui/theme.h"
 #include "mx/ui/theme_yaml.h"
+#include "mx/ui/locale.h"
 #include "mx/ui/types.h"
 #include "mx/ui/window.h"
 

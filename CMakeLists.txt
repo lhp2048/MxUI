@@ -160,6 +160,7 @@ add_library(mx_ui STATIC
   mx/ui/window.cpp
   mx/ui/theme.cpp
   mx/ui/theme_yaml.cpp
+  mx/ui/locale.cpp
   mx/ui/application.cpp
   mx/ui/factory.cpp
   mx/ui/yaml_loader.cpp
@@ -419,6 +420,16 @@ if(MXUI_BUILD_UI_DEMOS)
   )
   if(MSVC)
     target_compile_options(theme_test PRIVATE /W3 /utf-8 /permissive-)
+  endif()
+
+  add_executable(locale_test examples/locale_test/main.cpp)
+  target_link_libraries(locale_test PRIVATE MxUI::UI)
+  target_compile_definitions(locale_test PRIVATE
+    NOMINMAX UNICODE _UNICODE
+    WINVER=0x0A00 _WIN32_WINNT=0x0A00
+  )
+  if(MSVC)
+    target_compile_options(locale_test PRIVATE /W3 /utf-8 /permissive-)
   endif()
 
   add_executable(control_anim_test examples/control_anim_test/main.cpp)
